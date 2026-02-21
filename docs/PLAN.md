@@ -166,10 +166,49 @@ A mobile-first web application that helps families and groups of friends organiz
 
 ---
 
+## Infrastructure Decisions
+
+### Deployment: Vercel
+- **Chosen platform**: Vercel — native Next.js support, zero-config deployments, preview deployments per PR
+- **Plan**: Hobby (free) for development and prototyping; upgrade to Pro ($20/user/mo) before commercial launch
+- **Key advantages over alternatives**:
+  - 60-300s function timeout (vs Netlify's 10s — critical for Prisma + NextAuth flows)
+  - 6,000 build minutes/mo (vs Netlify's 300)
+  - Middleware execution order matches Next.js docs exactly
+  - `next/image` optimization works natively
+  - Preview deployments for every PR
+- **Commercial use**: Not allowed on Hobby tier — upgrade required before launch
+
+### Database Hosting: External PostgreSQL (Neon or Supabase)
+- Vercel Hobby doesn't include PostgreSQL (only 60 compute hours via Vercel Postgres)
+- **Primary option**: Neon free tier — serverless PostgreSQL with built-in connection pooling, ideal for Vercel's serverless architecture
+- **Alternative**: Supabase free tier — PostgreSQL with additional features (auth, storage, realtime)
+- **Connection pooling is mandatory** for serverless — use Neon's pooler or Prisma connection pooling
+- **Region co-location**: Deploy database and Vercel functions in the same region
+
+### Fallback Strategy
+- **Railway ($5/mo)** is the best value alternative if Vercel doesn't work out — includes PostgreSQL, no timeout issues, no sleep behavior
+- Pair with Cloudflare free CDN for edge caching of static assets
+
+---
+
+## Platforms Evaluated (2026-02-21)
+
+| Platform | Verdict | Key Limitation |
+|----------|---------|----------------|
+| **Vercel Hobby** | **Selected** for dev | No commercial use on Hobby |
+| **Netlify Free** | Viable but risky | 10s function timeout, 300 build mins |
+| **Cloudflare Pages** | Not recommended | 3 MiB worker limit breaks Prisma |
+| **Render Free** | Poor UX | Sleeps after 15 min inactivity |
+| **Railway ($5/mo)** | Best budget fallback | No edge network or Next.js optimizations |
+
+---
+
 ## Immediate Next Steps
 
 1. **Write Phase 1.1 PRD** - Project initialization and tooling setup
 2. **Initialize Next.js project** - `npx create-next-app@latest` with TypeScript + App Router
-3. **Set up Prisma** - Schema with User table, PostgreSQL connection
-4. **Build auth flow** - NextAuth.js Google OAuth + email/password
-5. **Create base UI components** - Button, Input, Card following Airbnb design patterns
+3. **Set up Prisma** - Schema with User table, PostgreSQL connection (Neon free tier)
+4. **Configure Vercel deployment** - Connect repo, set up environment variables, verify preview deployments
+5. **Build auth flow** - NextAuth.js Google OAuth + email/password
+6. **Create base UI components** - Button, Input, Card following Airbnb design patterns
